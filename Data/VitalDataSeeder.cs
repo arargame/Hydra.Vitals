@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -277,6 +277,37 @@ namespace Hydra.Vitals.Data
                         FixApproach = "No code change required. Google ANR guidelines recommend ignoring nativePollOnce input dispatch clusters.",
                         LessonsLearned = "A main thread in nativePollOnce / __epoll_pwait indicates a late dump where app already recovered.",
                         RelatedDoc = "GOOGLE_ANR_GUIDE.md"
+                    },
+
+                    new VitalIssue(
+                        "anr-art-gc-concurrent-copying",
+                        "[libart.so] art::gc::collector::ConcurrentCopying::Copy (ART GC Heap Compacting Pause)",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.ANR,
+                        "Input dispatching timed out / GC Mutator Stall",
+                        VitalSeverity.Medium,
+                        VitalStatus.FrameworkMonitored
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 20),
+                        ReportedVersion = "608190345 / 1.0.2026.08.19",
+                        AffectedUsers = 1,
+                        EventCount = 1,
+                        TechnologiesInvolved = new List<string> { "Android ART Runtime", "Concurrent Copying GC", "AdMob/WebView", "MonoGame" },
+                        Devices = new List<VitalDevice>
+                        {
+                            new VitalDevice("Oppo CPH1909 (Oppo A5s)", "Oppo", "8.1", 27, "MediaTek Helio P35 (2GB RAM)")
+                        },
+                        SignatureFrames = new List<string>
+                        {
+                            "art::gc::collector::ConcurrentCopying::Copy libart.so",
+                            "art::gc::collector::ConcurrentCopying::Copy libart.so"
+                        },
+                        RootCause = "ART GC Compacting Stall on Low-RAM Device. On Android 8.1 (Oppo A5s with 2GB RAM), the ART Concurrent Copying GC triggered a heavy heap compaction phase. When the main thread attempted object access/allocation, the read barrier or mutator pause stalled the main thread longer than 5 seconds due to high memory pressure from AdMob/Chromium WebView + MonoGame engine running simultaneously on a low-end MediaTek CPU.",
+                        FixApproach = "Reducing overall texture/RAM footprint directly mitigates this: smaller textures = smaller Mono/Java heap = faster/fewer ART GC compaction cycles. Continue TEXTURE_BUDGET.md shrinking and mobile asset optimization.",
+                        LessonsLearned = "On 2GB RAM Android 8.1 devices, concurrent ART GC compaction can stall UI thread if heap allocation pressure is high.",
+                        RelatedDoc = "play_vitals.json"
                     }
                 };
             }
