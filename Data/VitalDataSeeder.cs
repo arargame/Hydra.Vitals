@@ -133,13 +133,14 @@ namespace Hydra.Vitals.Data
                     )
                     {
                         DetectedDate = new DateTime(2026, 7, 25),
-                        AffectedUsers = 4,
-                        EventCount = 4,
-                        TechnologiesInvolved = new List<string> { "MonoGame GameView", "PowerVR/MediaTek GPU", ".NET LowLevelMonitor" },
+                        AffectedUsers = 5,
+                        EventCount = 5,
+                        TechnologiesInvolved = new List<string> { "MonoGame GameView", "PowerVR/Mali GPU", "Unisoc/MediaTek", ".NET LowLevelMonitor" },
                         Devices = new List<VitalDevice>
                         {
                             new VitalDevice("OPPO/Oplus MediaTek", "Oplus", "Android 13/14", null, "MediaTek + PowerVR"),
-                            new VitalDevice("Infinix SMART", "Infinix", "11", 30, "MediaTek + PowerVR (libsrv_um.so)")
+                            new VitalDevice("Infinix SMART", "Infinix", "11", 30, "MediaTek + PowerVR (libsrv_um.so)"),
+                            new VitalDevice("realme C53", "realme", "15", 35, "Unisoc T612 + Mali-G57 (libGLES_mali.so)")
                         },
                         SignatureFrames = new List<string>
                         {
@@ -147,7 +148,7 @@ namespace Hydra.Vitals.Data
                             "SystemNative_LowLevelMonitor_Signal_Release libSystem.Native.so",
                             "pthread_cond_timedwait / pthread_cond_signal"
                         },
-                        RootCause = "MonoGameAndroidGameView calls WaitOne() / Monitor Signal on main thread during OnPause/OnResume waiting for game loop handshake. Game loop thread (.NET Long Running Task) stalls on mutex while PowerVR GPU driver (libsrv_um.so) handles surface teardown.",
+                        RootCause = "MonoGameAndroidGameView calls WaitOne() / Monitor TimedWait on main thread during OnPause/OnResume waiting for game loop handshake. Game loop thread (.NET Long Running Task) stalls on mutex while budget GPU drivers (PowerVR libsrv_um.so / Mali libGLES_mali.so) handle surface sync/teardown.",
                         FixApproach = "Optimized OnPause main thread work (GameSettings.Load redundancy removed from 404ms to 2.2ms). Internal MonoGame handshake monitored.",
                         RelatedDoc = "MainThreadLock_ANR.md"
                     },
