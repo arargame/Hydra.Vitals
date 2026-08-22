@@ -169,7 +169,6 @@ namespace Hydra.Vitals.Data
                         ReportedVersion = "608190345",
                         AffectedUsers = 11,
                         EventCount = 12,
-                        ImpactPercentage = 36.4,
                         TechnologiesInvolved = new List<string> { "MonoGame Input", "Android UI Thread", "ConcurrentDictionary", "AdMob UMP" },
                         Devices = new List<VitalDevice>
                         {
