@@ -134,13 +134,14 @@ namespace Hydra.Vitals.Data
                     {
                         DetectedDate = new DateTime(2026, 7, 25),
                         AffectedUsers = 5,
-                        EventCount = 5,
+                        EventCount = 6,
                         TechnologiesInvolved = new List<string> { "MonoGame GameView", "PowerVR/Mali GPU", "Unisoc/MediaTek", ".NET LowLevelMonitor" },
                         Devices = new List<VitalDevice>
                         {
                             new VitalDevice("OPPO/Oplus MediaTek", "Oplus", "Android 13/14", null, "MediaTek + PowerVR"),
                             new VitalDevice("Infinix SMART", "Infinix", "11", 30, "MediaTek + PowerVR (libsrv_um.so)"),
-                            new VitalDevice("realme C53", "realme", "15", 35, "Unisoc T612 + Mali-G57 (libGLES_mali.so)")
+                            new VitalDevice("realme C53", "realme", "15", 35, "Unisoc T612 + Mali-G57 (libGLES_mali.so)"),
+                            new VitalDevice("Generic ARM32/ARM64", "PowerVR", "Android 10+", null, "PowerVR libsrv_um.so")
                         },
                         SignatureFrames = new List<string>
                         {
