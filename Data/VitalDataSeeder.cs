@@ -155,6 +155,39 @@ namespace Hydra.Vitals.Data
                     },
 
                     new VitalIssue(
+                        "anr-input-lock-free-optimization",
+                        "MessageQueue.nativePollOnce (Input dispatching timeout / Lock Contention)",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.ANR,
+                        "Input dispatching timed out",
+                        VitalSeverity.Critical,
+                        VitalStatus.FixedAwaitingRelease
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 22),
+                        ReportedVersion = "608190345",
+                        AffectedUsers = 11,
+                        EventCount = 12,
+                        ImpactPercentage = 36.4,
+                        TechnologiesInvolved = new List<string> { "MonoGame Input", "Android UI Thread", "ConcurrentDictionary", "AdMob UMP" },
+                        Devices = new List<VitalDevice>
+                        {
+                            new VitalDevice("All Android Devices", "Generic", "Android 10+", null, "UI Thread contention with MonoGame loop")
+                        },
+                        SignatureFrames = new List<string>
+                        {
+                            "android.os.MessageQueue.nativePollOnce",
+                            "android.os.MessageQueue.next",
+                            "Blocked.Android.Activity1.DispatchKeyEvent",
+                            "Blocked.Shared.Managers.InputManager.AndroidKeysDown"
+                        },
+                        RootCause = "UI thread was frequently contending on C# 'lock (AndroidKeysDown)' with MonoGame update loop during key/touch inputs and lifecycle events. In addition, ConsentManager and MobileAds initialization in OnCreate delayed first frame rendering.",
+                        FixApproach = "1. Converted InputManager.AndroidKeysDown to ConcurrentDictionary with lock-free atomic operations. 2. Made scroll delta and back-pressed tracking lock-free. 3. Offloaded OnPause audio suspend to Task.Run. 4. Postponed UMP Consent & MobileAds initialization past the first frame via PostDelayed(250ms).",
+                        RelatedDoc = "play_vitals.json"
+                    },
+
+                    new VitalIssue(
                         "anr-egl-bufferqueue-lock-contention",
                         "[libIMGegl.so] KEGLGetDrawableParameters (BufferQueue starvation)",
                         blocked.Id,
