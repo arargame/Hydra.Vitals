@@ -154,6 +154,39 @@ namespace Hydra.Vitals.Data
                     },
 
                     new VitalIssue(
+                        "anr-egl-bufferqueue-lock-contention",
+                        "[libIMGegl.so] KEGLGetDrawableParameters (BufferQueue starvation)",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.ANR,
+                        "Graphic Buffer Lock Contention",
+                        VitalSeverity.Low,
+                        VitalStatus.FrameworkMonitored
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 22),
+                        ReportedVersion = "608190345",
+                        AffectedUsers = 1,
+                        EventCount = 1,
+                        TechnologiesInvolved = new List<string> { "PowerVR GPU (libIMGegl.so)", "BufferQueue (libgui.so)", "MediaTek (libged.so)", "EGL" },
+                        Devices = new List<VitalDevice>
+                        {
+                            new VitalDevice("Generic MediaTek + PowerVR", "PowerVR/MediaTek", "Android 13+", null, "PowerVR IMGegl + MediaTek GED")
+                        },
+                        SignatureFrames = new List<string>
+                        {
+                            "BufferQueueProducer::waitForFreeSlotThenRelock libgui.so",
+                            "BufferQueueProducer::dequeueBuffer libgui.so",
+                            "KEGLGetDrawableParameters libIMGegl.so",
+                            "IMGeglMakeCurrent libIMGegl.so",
+                            "android::jni_eglMakeCurrent libandroid_runtime.so"
+                        },
+                        RootCause = "Main thread executes eglMakeCurrent (MonoGame surface transition), requesting a buffer via dequeueBuffer. All BufferQueue slots are locked by SurfaceFlinger or the PowerVR driver (libsrv_um.so/libged.so), forcing UI thread into waitForFreeSlotThenRelock until ANR at 5s.",
+                        FixApproach = "Native GPU driver stall. Minimized surface recreations with SensorLandscape and ConfigChanges. Monitored for future platform updates.",
+                        RelatedDoc = "play_vitals.json"
+                    },
+
+                    new VitalIssue(
                         "anr-quit-exit-abort",
                         "Environment.Exit(0) tearing down threads during exit",
                         blocked.Id,
