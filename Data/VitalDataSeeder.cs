@@ -122,6 +122,39 @@ namespace Hydra.Vitals.Data
                     },
 
                     new VitalIssue(
+                        "crash-touchpanel-teardown-npe",
+                        "TouchPanel.AddEvent - NullReferenceException on Activity Teardown",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.Crash,
+                        "NullReferenceException (JavaProxyThrowable)",
+                        VitalSeverity.High,
+                        VitalStatus.FixedAwaitingRelease
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 23),
+                        ReportedVersion = "608220526",
+                        AffectedUsers = 1,
+                        EventCount = 1,
+                        TechnologiesInvolved = new List<string> { "MonoGame TouchPanel", "Android ViewRootImpl", "Android 16" },
+                        Devices = new List<VitalDevice>
+                        {
+                            new VitalDevice("Redmi Redmi A3", "Xiaomi/Redmi", "16", 36, "Android 16 Relaunch Teardown")
+                        },
+                        SignatureFrames = new List<string>
+                        {
+                            "Microsoft.Xna.Framework.Input.Touch.TouchPanel.AddEvent",
+                            "Microsoft.Xna.Framework.Input.Touch.AndroidTouchEventManager.OnTouchEvent",
+                            "Microsoft.Xna.Framework.MonoGameAndroidGameView.onTouch",
+                            "android.view.ViewGroup.cancelAndClearTouchTargets",
+                            "android.view.ViewRootImpl.die"
+                        },
+                        RootCause = "During activity destruction/relaunch, ViewRootImpl dispatches a final touch cancel event. MonoGame's TouchPanel processes it after game/touch subsystem disposal, throwing NullReferenceException.",
+                        FixApproach = "Added DispatchTouchEvent override in Activity1 that consumes touches when IsDestroyed/IsFinishing is true with try/catch guard, and cleared touch listeners in OnDestroy.",
+                        RelatedDoc = "TouchPanel_Teardown_Crash.md"
+                    },
+
+                    new VitalIssue(
                         "anr-mainthread-lock-contention",
                         "Main-thread native lock contention (MonoGame pause/resume handshake)",
                         blocked.Id,
