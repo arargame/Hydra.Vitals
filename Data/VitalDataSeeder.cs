@@ -221,7 +221,7 @@ namespace Hydra.Vitals.Data
 
                     new VitalIssue(
                         "anr-egl-bufferqueue-lock-contention",
-                        "[libIMGegl.so] KEGLGetDrawableParameters (BufferQueue starvation)",
+                        "[libIMGegl.so] IMGeglSwapBuffersWithDamageKHR (BLASTBufferQueue contention)",
                         blocked.Id,
                         blocked.Name ?? "Blocked",
                         VitalType.ANR,
@@ -231,9 +231,9 @@ namespace Hydra.Vitals.Data
                     )
                     {
                         DetectedDate = new DateTime(2026, 8, 22),
-                        ReportedVersion = "608190345",
-                        AffectedUsers = 1,
-                        EventCount = 1,
+                        ReportedVersion = "608250351 (1.0.2026.08.25)",
+                        AffectedUsers = 2,
+                        EventCount = 2,
                         TechnologiesInvolved = new List<string> { "PowerVR GPU (libIMGegl.so)", "BufferQueue (libgui.so)", "MediaTek (libged.so)", "EGL" },
                         Devices = new List<VitalDevice>
                         {
@@ -241,14 +241,46 @@ namespace Hydra.Vitals.Data
                         },
                         SignatureFrames = new List<string>
                         {
-                            "BufferQueueProducer::waitForFreeSlotThenRelock libgui.so",
-                            "BufferQueueProducer::dequeueBuffer libgui.so",
-                            "KEGLGetDrawableParameters libIMGegl.so",
-                            "IMGeglMakeCurrent libIMGegl.so",
-                            "android::jni_eglMakeCurrent libandroid_runtime.so"
+                            "BLASTBufferQueue::onFrameAvailable libgui.so",
+                            "Surface::queueBuffer / hook_queueBuffer libgui.so",
+                            "IMGeglSwapBuffersWithDamageKHR libIMGegl.so",
+                            "eglSwapBuffers libEGL.so",
+                            "android::jni_eglSwapBuffers libandroid_runtime.so"
                         },
-                        RootCause = "Main thread executes eglMakeCurrent (MonoGame surface transition), requesting a buffer via dequeueBuffer. All BufferQueue slots are locked by SurfaceFlinger or the PowerVR driver (libsrv_um.so/libged.so), forcing UI thread into waitForFreeSlotThenRelock until ANR at 5s.",
-                        FixApproach = "Native GPU driver stall. Minimized surface recreations with SensorLandscape and ConfigChanges. Monitored for future platform updates.",
+                        RootCause = "UNPROVEN. The production trace is in eglSwapBuffers -> IMGeglSwapBuffersWithDamageKHR -> libgui BLASTBufferQueue::onFrameAvailable. It demonstrates an Android graphics-buffer / IMG PowerVR driver stall, but does not prove whether the blocked frame was ordinary rendering or a surface transition.",
+                        FixApproach = "Mitigation: Activity launch orientation changed from SensorLandscape to SensorPortrait on 2026-08-26, matching the product portrait default and removing the deterministic cold-start landscape-to-portrait SurfaceView/GraphicsDevice reset. Monitor the next production artifact; no managed code can directly repair a vendor EGL/BufferQueue deadlock.",
+                        LessonsLearned = "A native graphics signature must not be labelled as an app rendering bug without timing evidence. Record the exact driver frames and remove reproducible surface transitions first.",
+                        RelatedDoc = "play_vitals.json"
+                    },
+
+                    new VitalIssue(
+                        "anr-powervr-gldrawelements-stall",
+                        "[libGLESv2_powervr.so] glDrawElements (GPU Driver Execution Stall)",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.ANR,
+                        "Input dispatching timed out / GPU Driver Stall",
+                        VitalSeverity.Low,
+                        VitalStatus.FrameworkMonitored
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 23),
+                        ReportedVersion = "608220526",
+                        AffectedUsers = 1,
+                        EventCount = 1,
+                        TechnologiesInvolved = new List<string> { "PowerVR GPU (libGLESv2_powervr.so)", "OpenGL ES", "MonoGame GraphicsDevice", "libsrv_um.so" },
+                        Devices = new List<VitalDevice>
+                        {
+                            new VitalDevice("Lava Yuva Star", "Lava", "14", 34, "PowerVR GE8300 glDrawElements stall")
+                        },
+                        SignatureFrames = new List<string>
+                        {
+                            "glDrawElements /vendor/lib64/egl/libGLESv2_powervr.so",
+                            "libGLESv2_powervr.so",
+                            "libsrv_um.so (pthread_cond_timedwait)"
+                        },
+                        RootCause = "The main thread calls glDrawElements during rendering. On budget PowerVR GPUs (Lava Yuva Star), hardware command buffer execution / vertex buffer transfer stalled in the vendor driver (libsrv_um.so) for over 5 seconds, causing an input dispatch timeout.",
+                        FixApproach = "Native GPU hardware/driver stall. SpriteBatch draw calls and texture batching are already optimized. Monitored for future platform updates.",
                         RelatedDoc = "play_vitals.json"
                     },
 
