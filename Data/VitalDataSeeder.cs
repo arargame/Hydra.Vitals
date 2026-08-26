@@ -220,6 +220,35 @@ namespace Hydra.Vitals.Data
                     },
 
                     new VitalIssue(
+                        "anr-activity-multiwindow-binder",
+                        "[libc.so] __ioctl -> Activity.isInMultiWindowMode (Binder wait)",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.ANR,
+                        "Input dispatching timed out / synchronous ActivityManager Binder call",
+                        VitalSeverity.High,
+                        VitalStatus.FixedAwaitingRelease
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 26),
+                        ReportedVersion = "608250351 (1.0.2026.08.25)",
+                        AffectedUsers = 1,
+                        EventCount = 1,
+                        TechnologiesInvolved = new List<string> { "Android ActivityManager Binder", "Activity.isInMultiWindowMode", "Google Play Games on PC / DeX hybrid layout" },
+                        SignatureFrames = new List<string>
+                        {
+                            "__ioctl libc.so",
+                            "android::IPCThreadState::talkWithDriver libbinder.so",
+                            "IActivityManager$Stub$Proxy.isInMultiWindowMode",
+                            "android.app.Activity.isInMultiWindowMode"
+                        },
+                        RootCause = "Confirmed: IsDesktopMode was read multiple times per frame and synchronously queried Activity.isInMultiWindowMode. The query uses Binder to ActivityManager; this trace shows that IPC wait blocking input dispatch in libc __ioctl.",
+                        FixApproach = "Cache the initial multi-window state in Activity1 and update it from OnMultiWindowModeChanged. IsDesktopMode and orientation methods now read the lock-free cache, preserving GPG PC/DeX hybrid behavior without game-loop Binder calls.",
+                        LessonsLearned = "Never put an Android framework query that can cross Binder in a per-frame game-loop property. Cache lifecycle/window callbacks at the Activity boundary.",
+                        RelatedDoc = "play_vitals.json"
+                    },
+
+                    new VitalIssue(
                         "anr-egl-bufferqueue-lock-contention",
                         "[libIMGegl.so] IMGeglSwapBuffersWithDamageKHR (BLASTBufferQueue contention)",
                         blocked.Id,
@@ -308,7 +337,7 @@ namespace Hydra.Vitals.Data
                             "abort"
                         },
                         RootCause = "Environment.Exit(0) called libc exit() while OpenAL alsoft-mixer, BlockedAudioWar and Mono SGen threads were active, triggering std::terminate() / abort(). Main thread blocked in wait4, triggering ANR and SIGABRT simultaneously.",
-                        FixApproach = "IPlatformService.QuitGame() implemented. Desktop keeps Environment.Exit(0); Android overrides with MoveTaskToBack(true) to background gracefully without killing process destructors.",
+                        FixApproach = "IPlatformService.QuitGame() implemented. Desktop keeps Environment.Exit(0); Android exits MonoGame normally, then calls FinishAndRemoveTask() on the UI thread. Android's production path never calls Environment.Exit(0).",
                         LessonsLearned = "Never call Environment.Exit(0) or System.exit(0) in Android games with active native audio/rendering threads.",
                         RelatedDoc = "README.md"
                     },
