@@ -7,4 +7,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!--
+      Yenileme jetonunu diskte sifreli tutmak icin (Windows DPAPI).
+      Duz metin yazmak, Play verisine suresiz erisim veren bir anahtari
+      masaustune birakmakla ayni sey olurdu.
+    -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+  </ItemGroup>
+
 </Project>

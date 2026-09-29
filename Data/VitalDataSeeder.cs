@@ -155,6 +155,36 @@ namespace Hydra.Vitals.Data
                     },
 
                     new VitalIssue(
+                        "crash-threading-run-npe",
+                        "Threading.Run - NullReferenceException on Frame Dispatch",
+                        blocked.Id,
+                        blocked.Name ?? "Blocked",
+                        VitalType.Crash,
+                        "NullReferenceException (JavaProxyThrowable)",
+                        VitalSeverity.High,
+                        VitalStatus.FixedAwaitingRelease
+                    )
+                    {
+                        DetectedDate = new DateTime(2026, 8, 27),
+                        ReportedVersion = "608260339",
+                        AffectedUsers = 1,
+                        EventCount = 1,
+                        TechnologiesInvolved = new List<string> { "MonoGame Threading", "Android UI Looper", "WorkerThreadFrameDispatcher" },
+                        SignatureFrames = new List<string>
+                        {
+                            "Microsoft.Xna.Framework.Threading.Run",
+                            "Microsoft.Xna.Framework.AndroidGameWindow.OnUpdateFrame",
+                            "Microsoft.Xna.Framework.MonoGameAndroidGameView.UpdateFrameInternal",
+                            "Microsoft.Xna.Framework.MonoGameAndroidGameView.UpdateAndRenderFrame",
+                            "Microsoft.Xna.Framework.MonoGameAndroidGameView.RunIteration",
+                            "mono.java.lang.RunnableImplementor.run"
+                        },
+                        RootCause = "During activity teardown/pause, a delayed WorkerThreadFrameDispatcher callback was executed on the main UI looper after MonoGame's Game instance was disposed, causing Threading.Run to throw a NullReferenceException.",
+                        FixApproach = "Hooked AndroidEnvironment.UnhandledExceptionRaiser in Activity1.OnCreate to safely suppress harmless NullReferenceExceptions originating from MonoGame teardown frame dispatches.",
+                        RelatedDoc = "play_vitals.json"
+                    },
+
+                    new VitalIssue(
                         "anr-mainthread-lock-contention",
                         "Main-thread native lock contention (MonoGame pause/resume handshake)",
                         blocked.Id,

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Hydra.Vitals.Core;
 using Hydra.Vitals.Models;
+using Hydra.Vitals.PlayApi;
 using Hydra.Vitals.Services;
 
 namespace Hydra.Vitals.UI
@@ -11,10 +12,17 @@ namespace Hydra.Vitals.UI
     public class ConsoleDashboard
     {
         private readonly IVitalAnalysisService _service;
+        private readonly PlayVitalsMenu? _playMenu;
 
-        public ConsoleDashboard(IVitalAnalysisService service)
+        /// <summary>
+        /// playMenu opsiyonel: Google ayarlari olmayan bir makinede de bu
+        /// pano calismali. Menude "G" secenegi yalnizca menu verilmisse
+        /// gorunur.
+        /// </summary>
+        public ConsoleDashboard(IVitalAnalysisService service, PlayVitalsMenu? playMenu = null)
         {
             _service = service;
+            _playMenu = playMenu;
         }
 
         private static void SafeClear()
@@ -49,10 +57,12 @@ namespace Hydra.Vitals.UI
                 Console.WriteLine("[7] AI Hizli Danisma & Akilli Arama (Stack Trace / Hata Imzasi)");
                 Console.WriteLine("[8] Yeni Vital Kaydi / Hata Cozumu Ekle");
                 Console.WriteLine("[9] Detayli Istatistikler & Cozum Oranlari");
+                if (_playMenu != null)
+                    Console.WriteLine("[G] Google Play'den CANLI Crash & ANR Getir");
                 Console.WriteLine("[0] Cikis");
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write("Seciminiz [0-9]: ");
+                Console.Write(_playMenu != null ? "Seciminiz [0-9, G]: " : "Seciminiz [0-9]: ");
                 Console.ResetColor();
 
                 var key = Console.ReadLine()?.Trim();
@@ -60,6 +70,13 @@ namespace Hydra.Vitals.UI
                 {
                     Console.WriteLine("\nHydra.Vitals sonlandiriliyor. Iyi calismalar!");
                     break;
+                }
+
+                if (_playMenu != null && string.Equals(key, "G", StringComparison.OrdinalIgnoreCase))
+                {
+                    SafeClear();
+                    await _playMenu.RunAsync();
+                    continue;
                 }
 
                 switch (key)
