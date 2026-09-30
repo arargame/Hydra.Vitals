@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Hydra.Vitals.Data;
 using Hydra.Vitals.Services;
@@ -76,6 +78,24 @@ namespace Hydra.Vitals
                     }
                     return;
                 }
+                else if (arg == "--list-langs" && i + 1 < args.Length)
+                {
+                    string pkg = args[i + 1];
+                    var pubClient = new PlayPublisherClient(tokens, http);
+                    string editId = await pubClient.InsertEditAsync(pkg);
+                    try
+                    {
+                        var listings = await pubClient.GetListingsAsync(pkg, editId);
+                        Console.WriteLine($"Found {listings.Count} languages for {pkg}:");
+                        var langs = listings.Select(l => l.Language).OrderBy(x => x).ToList();
+                        Console.WriteLine(string.Join(", ", langs));
+                    }
+                    finally
+                    {
+                        await pubClient.DeleteEditAsync(pkg, editId);
+                    }
+                    return;
+                }
                 else if (arg == "--store-listing" && i + 1 < args.Length)
                 {
                     string pkg = args[i + 1];
@@ -143,6 +163,87 @@ namespace Hydra.Vitals
                     }
                     return;
                 }
+                else if (arg == "--upload-listings" && i + 2 < args.Length)
+                {
+                    string pkg = args[i + 1];
+                    string jsonPath = args[i + 2];
+                    bool commit = args.Any(a => a.Equals("--commit", StringComparison.OrdinalIgnoreCase));
+
+                    if (!File.Exists(jsonPath))
+                    {
+                        Console.WriteLine($"Error: JSON file not found at: {jsonPath}");
+                        return;
+                    }
+
+                    var jsonText = await File.ReadAllTextAsync(jsonPath);
+                    var rawListings = JsonSerializer.Deserialize<List<JsonElement>>(jsonText);
+                    if (rawListings == null || rawListings.Count == 0)
+                    {
+                        Console.WriteLine("No listings found in the provided JSON.");
+                        return;
+                    }
+
+                    var pubClient = new PlayPublisherClient(tokens, http);
+                    Console.WriteLine($"Opening edit for package: {pkg} (Commit mode: {commit})...");
+                    string editId = await pubClient.InsertEditAsync(pkg);
+                    int successCount = 0;
+                    int failCount = 0;
+
+                    try
+                    {
+                        for (int lIdx = 0; lIdx < rawListings.Count; lIdx++)
+                        {
+                            var item = rawListings[lIdx];
+                            string lang = item.GetProperty("language").GetString()!;
+                            string title = item.GetProperty("title").GetString()!;
+                            string shortDesc = item.GetProperty("shortDescription").GetString()!;
+                            string fullDesc = item.GetProperty("fullDescription").GetString()!;
+                            string? video = item.TryGetProperty("video", out var v) ? v.GetString() : null;
+
+                            var dto = new AppListingDto(lang, title, shortDesc, fullDesc, video);
+                            Console.Write($"[{lIdx + 1}/{rawListings.Count}] Uploading listing for {lang,-7}... ");
+
+                            try
+                            {
+                                await pubClient.UpdateListingAsync(pkg, editId, dto);
+                                Console.WriteLine("OK");
+                                successCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"FAILED: {ex.Message}");
+                                failCount++;
+                            }
+                        }
+
+                        Console.WriteLine();
+                        Console.WriteLine($"Batch summary: {successCount} succeeded, {failCount} failed.");
+
+                        if (commit)
+                        {
+                            if (failCount > 0)
+                            {
+                                Console.WriteLine("Warning: Some languages failed, but committing successful languages...");
+                            }
+                            Console.WriteLine("Committing edit to Google Play Console...");
+                            await pubClient.CommitEditAsync(pkg, editId);
+                            Console.WriteLine("SUCCESS: All listings committed to Google Play Console!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("DRY-RUN COMPLETE: Changes verified. Pass --commit to apply permanently.");
+                            await pubClient.DeleteEditAsync(pkg, editId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Unexpected error during batch upload: {ex.Message}");
+                        await pubClient.DeleteEditAsync(pkg, editId);
+                        throw;
+                    }
+
+                    return;
+                }
                 else if (arg == "--reauth")
                 {
                     Console.WriteLine("Reauthorizing Google credentials...");
@@ -154,7 +255,9 @@ namespace Hydra.Vitals
 
             Console.WriteLine("Usage:");
             Console.WriteLine("  --list-apps");
+            Console.WriteLine("  --list-langs <package_name>");
             Console.WriteLine("  --store-listing <package_name> [--lang <language_code>]");
+            Console.WriteLine("  --upload-listings <package_name> <json_file_path> [--commit]");
             Console.WriteLine("  --reauth");
         }
     }

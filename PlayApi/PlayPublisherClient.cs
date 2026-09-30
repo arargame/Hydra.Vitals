@@ -39,6 +39,7 @@ namespace Hydra.Vitals.PlayApi
         Task<AppListingDto?> GetListingAsync(string packageName, string editId, string language, CancellationToken ct = default);
         Task<StoreListingDetails?> GetFullListingDetailsAsync(string packageName, string editId, string language, CancellationToken ct = default);
         Task<AppListingDto> UpdateListingVideoAsync(string packageName, string editId, string language, string videoUrl, CancellationToken ct = default);
+        Task<AppListingDto> UpdateListingAsync(string packageName, string editId, AppListingDto listing, CancellationToken ct = default);
         Task<IReadOnlyList<AppImageDto>> GetImagesAsync(string packageName, string editId, string language, string imageType, CancellationToken ct = default);
         Task DeleteAllImagesAsync(string packageName, string editId, string language, string imageType, CancellationToken ct = default);
         Task DeleteImageAsync(string packageName, string editId, string language, string imageType, string imageId, CancellationToken ct = default);
@@ -132,6 +133,27 @@ namespace Hydra.Vitals.PlayApi
             var url = $"{BaseUrl}/{Uri.EscapeDataString(packageName)}/edits/{Uri.EscapeDataString(editId)}/listings/{Uri.EscapeDataString(language)}";
             var body = JsonSerializer.Serialize(new { video = videoUrl });
             using var doc = await SendAsync(HttpMethod.Patch, url, body, ct);
+            return ParseListing(doc.RootElement);
+        }
+
+        public async Task<AppListingDto> UpdateListingAsync(
+            string packageName, string editId, AppListingDto listing, CancellationToken ct = default)
+        {
+            var url = $"{BaseUrl}/{Uri.EscapeDataString(packageName)}/edits/{Uri.EscapeDataString(editId)}/listings/{Uri.EscapeDataString(listing.Language)}";
+            var payload = new Dictionary<string, string>
+            {
+                ["language"] = listing.Language,
+                ["title"] = listing.Title,
+                ["shortDescription"] = listing.ShortDescription,
+                ["fullDescription"] = listing.FullDescription
+            };
+            if (!string.IsNullOrWhiteSpace(listing.Video))
+            {
+                payload["video"] = listing.Video;
+            }
+
+            var body = JsonSerializer.Serialize(payload);
+            using var doc = await SendAsync(HttpMethod.Put, url, body, ct);
             return ParseListing(doc.RootElement);
         }
 

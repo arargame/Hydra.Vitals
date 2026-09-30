@@ -12,11 +12,17 @@ This extends the previous store synchronization capabilities (`PlayStoreSyncServ
 ## 2. Command Line Interface (CLI)
 
 ```bash
+# List all languages currently configured in Google Play Store
+dotnet run --project Hydra.Vitals.csproj -- --list-langs com.arargames.spacedodger
+
 # Query default English store listing for Space Dodger
 dotnet run --project Hydra.Vitals.csproj -- --store-listing com.arargames.spacedodger
 
-# Query specific localized language listing (e.g., en-US, tr-TR)
-dotnet run --project Hydra.Vitals.csproj -- --store-listing com.arargames.spacedodger --lang en-US
+# Query specific localized language listing (e.g., en-US, tr-TR, fa)
+dotnet run --project Hydra.Vitals.csproj -- --store-listing com.arargames.spacedodger --lang fa
+
+# Batch upload & commit multi-language listings from JSON
+dotnet run --project Hydra.Vitals.csproj -- --upload-listings com.arargames.spacedodger path/to/listings.json --commit
 
 # List all accessible apps in Google Play Console
 dotnet run --project Hydra.Vitals.csproj -- --list-apps
